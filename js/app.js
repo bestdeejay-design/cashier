@@ -136,10 +136,34 @@ const appData = {
   }
 };
 
+// Extend menu items with enabled flag
+for (const cat of Object.keys(appData.menu)) {
+  appData.menu[cat].forEach(item => item.enabled = true);
+}
+
+const adminData = {
+  outlets: [
+    { id: 'o1', name: 'Ресторан "Золотая Лоза"', address: 'ул. Тверская, 12', revenue: 385000, cashierCount: 3, transactions: 214, city: 'Москва' },
+    { id: 'o2', name: 'Кафе "Городское"', address: 'пр. Невский, 45', revenue: 212000, cashierCount: 2, transactions: 118, city: 'СПб' },
+    { id: 'o3', name: 'Ресторан "Восток"', address: 'ул. Байкальская, 8', revenue: 298000, cashierCount: 2, transactions: 156, city: 'Москва' }
+  ],
+  cashiers: [
+    { id: 'c1', name: 'Елена Петрова', outlet: 'o1', active: true, shift: 'Дневная', rating: 4.8, revenue: 142000, transactions: 89, phone: '+7 (915) 123-45-67' },
+    { id: 'c2', name: 'Иван Смирнов', outlet: 'o1', active: true, shift: 'Ночная', rating: 4.5, revenue: 118000, transactions: 67, phone: '+7 (916) 234-56-78' },
+    { id: 'c3', name: 'Мария Козлова', outlet: 'o1', active: false, shift: 'Дневная', rating: 4.9, revenue: 125000, transactions: 78, phone: '+7 (917) 345-67-89' },
+    { id: 'c4', name: 'Анна Кузнецова', outlet: 'o2', active: true, shift: 'Дневная', rating: 4.7, revenue: 98000, transactions: 54, phone: '+7 (918) 456-78-90' },
+    { id: 'c5', name: 'Дмитрий Волков', outlet: 'o2', active: false, shift: 'Дневная', rating: 4.3, revenue: 87000, transactions: 48, phone: '+7 (919) 567-89-01' },
+    { id: 'c6', name: 'Ольга Соколова', outlet: 'o3', active: true, shift: 'Дневная', rating: 4.6, revenue: 135000, transactions: 82, phone: '+7 (920) 678-90-12' },
+    { id: 'c7', name: 'Павел Морозов', outlet: 'o3', active: false, shift: 'Ночная', rating: 4.4, revenue: 89000, transactions: 51, phone: '+7 (921) 789-01-23' }
+  ],
+  nextCashierId: 8
+};
+
 let history = ['home'];
 let currentCategory = 'Напитки';
 let cart = [];
 let receiptId = 1;
+let currentMode = 'cashier';
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -162,10 +186,36 @@ function loadTheme() {
   });
 }
 
+function toggleMode() {
+  const knob = document.getElementById('modeKnob');
+  const cashierLabel = document.getElementById('cashierLabel');
+  const adminLabel = document.getElementById('adminLabel');
+  const toggle = document.querySelector('.mode-toggle');
+  const btn = document.getElementById('enterBtn');
+
+  currentMode = currentMode === 'cashier' ? 'admin' : 'cashier';
+
+  if (toggle) toggle.classList.toggle('driver', currentMode === 'admin');
+  if (cashierLabel) cashierLabel.classList.toggle('active', currentMode === 'cashier');
+  if (adminLabel) adminLabel.classList.toggle('active', currentMode === 'admin');
+  if (btn) {
+    btn.innerHTML = currentMode === 'cashier'
+      ? 'Открыть кассу <svg class="icon"><use href="#icon-arrow"/></svg>'
+      : 'Панель управления <svg class="icon"><use href="#icon-arrow"/></svg>';
+  }
+  localStorage.setItem('cashier-mode', currentMode);
+}
+
+function initMode() {
+  const saved = localStorage.getItem('cashier-mode') || 'cashier';
+  if (saved !== currentMode) toggleMode();
+}
+
 function openApp() {
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   localStorage.setItem('cashier-appOpen', 'true');
+  updateBottomNav();
   showPage('home');
 }
 
@@ -174,6 +224,49 @@ function closeApp() {
   document.getElementById('app').classList.add('hidden');
   history = ['home'];
   localStorage.setItem('cashier-appOpen', 'false');
+}
+
+function updateBottomNav() {
+  const nav = document.getElementById('bottomNav');
+  if (currentMode === 'admin') {
+    nav.innerHTML = `
+      <button class="nav-item active" onclick="showPage('admin-outlets', this)">
+        <svg class="icon-nav"><use href="#icon-building"/></svg>
+        <span>Точки</span>
+      </button>
+      <button class="nav-item" onclick="showPage('admin-cashiers', this)">
+        <svg class="icon-nav"><use href="#icon-users"/></svg>
+        <span>Кассиры</span>
+      </button>
+      <button class="nav-item" onclick="showPage('admin-menu', this)">
+        <svg class="icon-nav"><use href="#icon-food"/></svg>
+        <span>Меню</span>
+      </button>
+      <button class="nav-item" onclick="showPage('admin-analytics', this)">
+        <svg class="icon-nav"><use href="#icon-chart"/></svg>
+        <span>Аналитика</span>
+      </button>
+    `;
+  } else {
+    nav.innerHTML = `
+      <button class="nav-item active" onclick="showPage('home', this)">
+        <svg class="icon-nav"><use href="#icon-home"/></svg>
+        <span>Главная</span>
+      </button>
+      <button class="nav-item" onclick="showPage('pos', this)">
+        <svg class="icon-nav"><use href="#icon-wallet"/></svg>
+        <span>Касса</span>
+      </button>
+      <button class="nav-item" onclick="showPage('analytics', this)">
+        <svg class="icon-nav"><use href="#icon-chart"/></svg>
+        <span>Аналитика</span>
+      </button>
+      <button class="nav-item" onclick="showPage('profile', this)">
+        <svg class="icon-nav"><use href="#icon-user"/></svg>
+        <span>Профиль</span>
+      </button>
+    `;
+  }
 }
 
 function showPage(pageName, btnElement) {
@@ -211,7 +304,11 @@ function updateHeader(pageName) {
     home: 'Главная',
     pos: 'Касса',
     analytics: 'Аналитика',
-    profile: 'Профиль'
+    profile: 'Профиль',
+    'admin-outlets': 'Торговые точки',
+    'admin-cashiers': 'Кассиры',
+    'admin-menu': 'Управление меню',
+    'admin-analytics': 'Аналитика'
   };
   document.getElementById('appTitle').textContent = titles[pageName] || 'Главная';
   const timeEl = document.getElementById('headerTime');
@@ -235,10 +332,15 @@ function findItem(id) {
 
 function renderContent(pageName) {
   const content = document.getElementById('content');
-  if (pageName === 'home') content.innerHTML = renderHome();
+  if (pageName === 'home' && currentMode === 'cashier') content.innerHTML = renderHome();
+  else if (pageName === 'home' && currentMode === 'admin') content.innerHTML = renderAdminOutlets();
   else if (pageName === 'pos') content.innerHTML = renderPOS();
-  else if (pageName === 'analytics') content.innerHTML = renderAnalytics();
+  else if (pageName === 'analytics' && currentMode === 'cashier') content.innerHTML = renderAnalytics();
   else if (pageName === 'profile') content.innerHTML = renderProfile();
+  else if (pageName === 'admin-outlets') content.innerHTML = renderAdminOutlets();
+  else if (pageName === 'admin-cashiers') content.innerHTML = renderAdminCashiers();
+  else if (pageName === 'admin-menu') content.innerHTML = renderAdminMenu();
+  else if (pageName === 'admin-analytics') content.innerHTML = renderAdminAnalytics();
 }
 
 function renderHome() {
@@ -755,6 +857,309 @@ function renderProfile() {
   `;
 }
 
+/* ─── ADMIN PAGES ─── */
+
+function getOutletName(id) {
+  const o = adminData.outlets.find(o => o.id === id);
+  return o ? o.name : '—';
+}
+
+function getOutletCashiers(outletId) {
+  return adminData.cashiers.filter(c => c.outlet === outletId);
+}
+
+function renderAdminOutlets() {
+  const totalRevenue = adminData.outlets.reduce((s, o) => s + o.revenue, 0);
+  const totalTransactions = adminData.outlets.reduce((s, o) => s + o.transactions, 0);
+
+  return `
+    <div class="page-content">
+      <div class="dashboard-grid">
+        <div class="dashboard-card wide accent">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="flex:1">
+              <div class="stat-label">Общая выручка</div>
+              <div class="stat-value" style="color:var(--primary)">${formatCurrency(totalRevenue)}</div>
+            </div>
+            <div style="flex:1;border-left:1px solid rgba(255,255,255,0.1);padding-left:16px">
+              <div class="stat-label">Транзакции</div>
+              <div class="stat-value" style="color:var(--success);font-size:28px">${totalTransactions}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:16px">Торговые точки</h3>
+      ${adminData.outlets.map(o => {
+        const activeCashiers = getOutletCashiers(o.id).filter(c => c.active).length;
+        return `
+          <div class="outlet-card">
+            <div class="outlet-header">
+              <div class="outlet-icon"><svg class="icon"><use href="#icon-building"/></svg></div>
+              <div class="outlet-info">
+                <div class="outlet-name">${o.name}</div>
+                <div class="outlet-addr">${o.address}</div>
+              </div>
+              <div class="outlet-revenue">${formatCurrency(o.revenue)}</div>
+            </div>
+            <div class="outlet-stats">
+              <span><svg class="icon-xs"><use href="#icon-users"/></svg> ${activeCashiers}/${o.cashierCount} кассиров</span>
+              <span><svg class="icon-xs"><use href="#icon-clipboard"/></svg> ${o.transactions} транз.</span>
+            </div>
+            <div class="outlet-cashiers">
+              ${getOutletCashiers(o.id).map(c => `
+                <div class="cashier-mini">
+                  <div class="cashier-mini-dot ${c.active ? 'on' : 'off'}"></div>
+                  <span>${c.name}</span>
+                  <span class="cashier-mini-rev">${formatCurrency(c.revenue)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderAdminCashiers() {
+  const cashiers = adminData.cashiers;
+  const activeCount = cashiers.filter(c => c.active).length;
+
+  return `
+    <div class="page-content">
+      <div class="dashboard-grid">
+        <div class="dashboard-card wide accent">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="flex:1;text-align:center">
+              <div class="stat-label">Всего кассиров</div>
+              <div class="stat-value" style="color:var(--primary);font-size:28px">${cashiers.length}</div>
+            </div>
+            <div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,0.1)">
+              <div class="stat-label">Активны</div>
+              <div class="stat-value" style="color:var(--success);font-size:28px">${activeCount}</div>
+            </div>
+            <div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,0.1)">
+              <div class="stat-label">Отключены</div>
+              <div class="stat-value" style="color:var(--error);font-size:28px">${cashiers.length - activeCount}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="add-cashier-btn" onclick="showAddCashierForm()">
+        <svg class="icon"><use href="#icon-plus"/></svg>
+        Добавить кассира
+      </button>
+
+      <div id="addCashierForm" class="add-cashier-form hidden">
+        <input type="text" id="newCashierName" placeholder="Имя кассира" class="admin-input">
+        <select id="newCashierOutlet" class="admin-input">
+          <option value="">Выберите точку</option>
+          ${adminData.outlets.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}
+        </select>
+        <select id="newCashierShift" class="admin-input">
+          <option value="Дневная">Дневная смена</option>
+          <option value="Ночная">Ночная смена</option>
+        </select>
+        <div class="add-cashier-actions">
+          <button class="btn-confirm" onclick="confirmAddCashier()">Добавить</button>
+          <button class="btn-cancel" onclick="hideAddCashierForm()">Отмена</button>
+        </div>
+      </div>
+
+      <h3 style="margin-top:16px">Список кассиров</h3>
+      ${cashiers.map(c => {
+        const oName = getOutletName(c.outlet);
+        return `
+          <div class="cashier-card ${c.active ? '' : 'disabled'}">
+            <div class="cashier-avatar">${c.name.split(' ').map(s => s[0]).join('')}</div>
+            <div class="cashier-info">
+              <div class="cashier-name">${c.name}</div>
+              <div class="cashier-meta">${oName} • ${c.shift} смена</div>
+              <div class="cashier-meta">${c.phone} • ${c.transactions} транз.</div>
+              <div class="cashier-stats">
+                <span class="cashier-stat">${formatCurrency(c.revenue)}</span>
+                <span class="cashier-stat" style="color:var(--primary)">★ ${c.rating}</span>
+              </div>
+            </div>
+            <div class="cashier-toggle">
+              <div class="toggle-track ${c.active ? 'on' : ''}" onclick="toggleCashier('${c.id}')">
+                <div class="toggle-thumb" style="left:${c.active ? '22px' : '2px'}"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function showAddCashierForm() {
+  document.getElementById('addCashierForm').classList.remove('hidden');
+}
+
+function hideAddCashierForm() {
+  document.getElementById('addCashierForm').classList.add('hidden');
+}
+
+function confirmAddCashier() {
+  const name = document.getElementById('newCashierName').value.trim();
+  const outlet = document.getElementById('newCashierOutlet').value;
+  const shift = document.getElementById('newCashierShift').value;
+  if (!name || !outlet) { alert('Заполните имя и выберите точку'); return; }
+  adminData.cashiers.push({
+    id: 'c' + adminData.nextCashierId++,
+    name: name,
+    outlet: outlet,
+    active: true,
+    shift: shift,
+    rating: 4.0,
+    revenue: 0,
+    transactions: 0,
+    phone: '+7 (---) --- -- --'
+  });
+  const o = adminData.outlets.find(o => o.id === outlet);
+  if (o) o.cashierCount++;
+  hideAddCashierForm();
+  renderContent('admin-cashiers');
+}
+
+function toggleCashier(id) {
+  const c = adminData.cashiers.find(c => c.id === id);
+  if (!c) return;
+  c.active = !c.active;
+  renderContent('admin-cashiers');
+}
+
+function renderAdminMenu() {
+  return `
+    <div class="page-content">
+      <h3>Управление меню</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Включайте и отключайте позиции в меню</p>
+      ${Object.keys(appData.menu).map(cat => `
+        <div class="menu-category-block">
+          <h4 class="menu-cat-title"><svg class="icon"><use href="#icon-${cat === 'Напитки' ? 'coffee' : cat === 'Десерты' ? 'food' : 'food'}"/></svg> ${cat}</h4>
+          ${appData.menu[cat].map(item => `
+            <div class="menu-item-row ${item.enabled ? '' : 'disabled'}">
+              <div class="menu-item-info">
+                <div class="menu-item-name">${item.name}</div>
+                <div class="menu-item-price">${item.price} ₽</div>
+              </div>
+              <div class="toggle-track ${item.enabled ? 'on' : ''}" onclick="toggleMenuItem('${item.id}', '${cat}')">
+                <div class="toggle-thumb" style="left:${item.enabled ? '22px' : '2px'}"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function toggleMenuItem(id, cat) {
+  const item = appData.menu[cat].find(i => i.id === id);
+  if (!item) return;
+  item.enabled = !item.enabled;
+  renderContent('admin-menu');
+}
+
+function renderAdminAnalytics() {
+  const totalRevenue = adminData.outlets.reduce((s, o) => s + o.revenue, 0);
+  const totalTx = adminData.outlets.reduce((s, o) => s + o.transactions, 0);
+  const totalCashiers = adminData.cashiers.length;
+  const activeCashiers = adminData.cashiers.filter(c => c.active).length;
+  const avgRevenuePerOutlet = Math.round(totalRevenue / adminData.outlets.length);
+  const maxOutlet = [...adminData.outlets].sort((a, b) => b.revenue - a.revenue)[0];
+  const topCashier = [...adminData.cashiers].sort((a, b) => b.revenue - a.revenue)[0];
+  const maxRev = Math.max(...adminData.outlets.map(o => o.revenue));
+
+  return `
+    <div class="page-content">
+      <div class="dashboard-grid">
+        <div class="dashboard-card wide accent">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="flex:1;text-align:center">
+              <div class="stat-label">Общая выручка</div>
+              <div class="stat-value" style="color:var(--primary)">${formatCurrency(totalRevenue)}</div>
+            </div>
+            <div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,0.1)">
+              <div class="stat-label">Средняя / точка</div>
+              <div class="stat-value" style="color:var(--success);font-size:22px">${formatCurrency(avgRevenuePerOutlet)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-section">
+        <h3>Выручка по точкам</h3>
+        <div class="chart-container">
+          <div class="chart-bars" style="height:140px">
+            ${adminData.outlets.map(o => {
+              const h = Math.max((o.revenue / maxRev) * 120, 12);
+              return `
+                <div class="chart-bar-wrapper">
+                  <div class="chart-bar-value">${(o.revenue / 1000).toFixed(0)}к</div>
+                  <div class="chart-bar" style="height:${h}px;background:var(--primary)"></div>
+                  <div class="chart-bar-label" style="font-size:8px">${o.name.split('"')[1] || o.name}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-section">
+        <h3>Лучшие показатели</h3>
+        <div class="insight-card success">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h4>🏆 Лучшая точка</h4>
+              <p>${maxOutlet.name} — ${formatCurrency(maxOutlet.revenue)}</p>
+            </div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h4>⭐ Лучший кассир</h4>
+              <p>${topCashier.name} — ${formatCurrency(topCashier.revenue)} (${getOutletName(topCashier.outlet)})</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-section">
+        <h3>Сводка</h3>
+        <div class="bigdata-grid">
+          <div class="bigdata-item">
+            <svg class="icon"><use href="#icon-building"/></svg>
+            <h4>Точки</h4>
+            <div class="bigdata-value">${adminData.outlets.length}</div>
+          </div>
+          <div class="bigdata-item">
+            <svg class="icon"><use href="#icon-users"/></svg>
+            <h4>Кассиры</h4>
+            <div class="bigdata-value">${activeCashiers}/${totalCashiers}</div>
+            <p>активных</p>
+          </div>
+          <div class="bigdata-item">
+            <svg class="icon"><use href="#icon-clipboard"/></svg>
+            <h4>Транзакции</h4>
+            <div class="bigdata-value">${totalTx}</div>
+          </div>
+          <div class="bigdata-item">
+            <svg class="icon"><use href="#icon-chart"/></svg>
+            <h4>Ср. выручка</h4>
+            <div class="bigdata-value">${formatCurrency(avgRevenuePerOutlet)}</div>
+            <p>на точку</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function toggleSetting(el, key) {
   const thumb = el.querySelector('.toggle-thumb');
   const isOn = thumb.style.left === '22px';
@@ -769,3 +1174,4 @@ function toggleSetting(el, key) {
 }
 
 loadTheme();
+initMode();

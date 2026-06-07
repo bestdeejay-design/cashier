@@ -131,7 +131,16 @@
         </div>
       </div>
       
-      <button class="btn-primary" onclick="openApp()">
+      <!-- Кассир / Администратор Toggle -->
+      <div class="mode-toggle-wrapper">
+        <span id="cashierLabel" class="mode-label active">Кассир</span>
+        <div class="mode-toggle" onclick="toggleMode()">
+          <div class="mode-toggle-knob" id="modeKnob"></div>
+        </div>
+        <span id="adminLabel" class="mode-label">Администратор</span>
+      </div>
+      
+      <button class="btn-primary" onclick="openApp()" id="enterBtn">
         Открыть кассу
         <svg class="icon"><use href="#icon-arrow"/></svg>
       </button>
@@ -163,24 +172,7 @@
       <div class="app-content" id="content">
       </div>
       
-      <div class="bottom-nav" id="bottomNav">
-        <button class="nav-item active" onclick="showPage('home', this)">
-          <svg class="icon-nav"><use href="#icon-home"/></svg>
-          <span>Главная</span>
-        </button>
-        <button class="nav-item" onclick="showPage('pos', this)">
-          <svg class="icon-nav"><use href="#icon-wallet"/></svg>
-          <span>Касса</span>
-        </button>
-        <button class="nav-item" onclick="showPage('analytics', this)">
-          <svg class="icon-nav"><use href="#icon-chart"/></svg>
-          <span>Аналитика</span>
-        </button>
-        <button class="nav-item" onclick="showPage('profile', this)">
-          <svg class="icon-nav"><use href="#icon-user"/></svg>
-          <span>Профиль</span>
-        </button>
-      </div>
+      <div class="bottom-nav" id="bottomNav"></div>
     </div>
     
     <button class="btn-exit" onclick="closeApp()">На главную</button>
